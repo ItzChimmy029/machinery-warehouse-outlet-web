@@ -508,8 +508,17 @@
 
     function resize() {
       const wrap = canvas.parentElement;
-      const w = wrap.clientWidth, h = wrap.clientHeight;
+      const w = Math.min(wrap.clientWidth, window.innerWidth);
+      const h = Math.max(wrap.clientHeight, 1);
       renderer.setSize(w, h, false);
+      // Belt-and-suspenders: some mobile WebViews let a canvas's internal
+      // drawing-buffer size leak into its layout size for a frame before
+      // CSS fully applies, which can widen the page and let a horizontal
+      // swipe "stick". Force the CSS box explicitly every resize so the
+      // canvas can never be wider than its wrapper regardless of engine quirks.
+      canvas.style.width = "100%";
+      canvas.style.height = "100%";
+      canvas.style.maxWidth = "100%";
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
     }

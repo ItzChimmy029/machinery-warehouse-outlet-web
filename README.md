@@ -216,6 +216,15 @@ mouse movement. It:
   before) since two additional clean part photos came out of the new source
   images.
 
+### Follow-up fix: hero content touching the screen edge
+On phones the hero headline, buttons and stat row sat flush against the left
+edge of the screen (no side margin). Cause: `.hero-content` set
+`padding: X 0 X`, which overrode the side padding from `.container`.
+It now only sets top/bottom padding. Verified on 9 pages x 8 screen widths
+(320px to 1440px): no text sits within 10px of a screen edge. The layout
+containment / `overflow-x` rules added around the hero canvas are kept as
+extra protection.
+
 ## 10. Accessibility & performance notes
 
 - Semantic HTML throughout (`<nav>`, `<header>`, `<footer>`, proper
