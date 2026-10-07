@@ -1,0 +1,31 @@
+# Secrets and credentials: never commit these
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+credentials*
+secrets*
+*.secret
+
+# Logs, temp and backup files
+*.log
+*.bak
+*.tmp
+*.swp
+*~
+
+# Python build artefacts
+__pycache__/
+*.pyc
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Dependencies (none today, but keep them out if added later)
+node_modules/

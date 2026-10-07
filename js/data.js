@@ -1,11 +1,11 @@
 /* ==========================================================================
    Machinery Warehouse Outlet — Data Layer
    Model codes, working widths, categories, contact details and company
-   facts are sourced from the company's own catalogue. No prices,
+   facts come from the company's own product documentation. No prices,
    certifications, customer counts or other unverified claims have been
    invented. The "description" field on each product is written by us to
    explain what the listed features mean for a buyer — it does not add any
-   spec, number or claim beyond what the catalogue already states.
+   spec, number or claim beyond what the company's own documentation already states.
    To add a new machine, add an object to PRODUCTS following the same shape.
    ========================================================================== */
 
@@ -15,13 +15,13 @@ const COMPANY = {
   tagline: "Home of Industrial Machines and Spare Parts",
   quality: "Quality Guaranteed",
   disclaimer:
-    "Pictures in this catalogue may slightly differ from the physical machine, but the quality and specifications are the same.",
+    "Pictures of our machines may slightly differ from the physical unit, but the quality and specifications are the same.",
   address: "Awada Industrial Zone, 2 Ichi Street, Off Ezeiweka Road, Awada-Obosi, Anambra State",
-  branches: ["Lagos", "Abuja"],
-  phones: ["081-670-95700", "081-857-69700", "080-331-30374", "080-868-34332"],
+  phones: ["08033100374", "09095555222"],
   emails: ["machines.warehouse@juninet.com", "machines.warehouse@gmail.com"],
-  // Not stated anywhere in the source catalogue — replace before launch.
-  whatsapp: "WHATSAPP_NUMBER_HERE",
+  // International format (no leading +, no leading 0) — used directly to build wa.me links.
+  whatsapp: "2349022330011",
+  whatsappDisplay: "0902 233 0011",
   socials: {
     facebook: "",
     instagram: "",
@@ -41,7 +41,7 @@ const CATEGORIES = [
     name: "Bag Making Machines",
     short: "Bag Making",
     image: "cat-bag-making",
-    blurb: "Multi-line mechanical bag making machines with auto conveyor, and non-woven bag lines.",
+    blurb: "Multi-line mechanical bag making machines with auto conveyor.",
   },
   {
     slug: "water-packaging",
@@ -78,16 +78,9 @@ const CATEGORIES = [
     image: "cat-punching",
     blurb: "Mechanical and hydraulic punching machines.",
   },
-  {
-    slug: "fuel-dispensing",
-    name: "Fuel Dispensing Machines",
-    short: "Fuel Dispensing",
-    image: "cat-fuel",
-    blurb: "Single and double pump fuel dispensers.",
-  },
 ];
 
-/* models: working width / capacity ranges exactly as printed in the catalogue.
+/* models: working width / capacity ranges exactly as supplied by the company.
    description: written by us to explain the listed features — not a new claim. */
 const PRODUCTS = [
   {
@@ -142,7 +135,7 @@ const PRODUCTS = [
     gallery: ["prod-single-screw"],
     features: [],
     description:
-      "Two dies run from the machine's screw line, so you can produce two film jobs side by side or push more volume of a single spec through one footprint — a practical step up for an operation outgrowing a single-line setup.",
+      "Two dies run from the machine's screw line, so you can produce two film jobs side by side or push more volume of a single spec through one footprint. It is a practical step up for an operation outgrowing a single-line setup.",
     models: [
       { code: "MW-60", spec: "100–500mm" },
       { code: "MW-70", spec: "100–600mm" },
@@ -171,7 +164,7 @@ const PRODUCTS = [
     gallery: ["prod-rotary-die"],
     features: ["Double layer coextrusion", "Rotary die head"],
     description:
-      "The rotary die head turns the bubble evenly as it forms, helping distribute gauge more consistently around the full circumference of the film — a detail that matters when customers are inspecting for even thickness.",
+      "The rotary die head turns the bubble evenly as it forms, helping distribute gauge more consistently around the full circumference of the film, a detail that matters when customers inspect for even thickness.",
     models: [],
   },
   {
@@ -182,7 +175,7 @@ const PRODUCTS = [
     gallery: ["prod-sachet-water"],
     features: ["Filling", "Sealing", "Packing"],
     description:
-      "Fills, seals and packs sachet water in one continuous cycle — the standard production line for pure water producers supplying local and regional markets, built to run consistently shift after shift.",
+      "Fills, seals and packs sachet water in one continuous cycle, the standard production line for pure water producers supplying local and regional markets, built to run consistently shift after shift.",
     models: [],
   },
   {
@@ -193,7 +186,7 @@ const PRODUCTS = [
     gallery: ["prod-bag-4line"],
     features: ["Four lines", "Auto conveyor"],
     description:
-      "Four lines and an auto conveyor move finished bags off the machine with minimal manual handling, in working widths from 550mm to 950mm — a solid entry point for producers scaling up from a single-line setup.",
+      "Four lines and an auto conveyor move finished bags off the machine with minimal manual handling, in working widths from 550mm to 950mm, a solid entry point for producers scaling up from a single-line setup.",
     models: [
       { code: "MW4-B600", spec: "550mm" },
       { code: "MW4-B800", spec: "750mm" },
@@ -231,17 +224,6 @@ const PRODUCTS = [
     ],
   },
   {
-    slug: "automatic-non-woven-fabrics-bag-making-machine",
-    name: "Automatic Non-Woven Fabrics Bag Making Machine",
-    category: "bag-making",
-    image: "prod-nonwoven",
-    gallery: ["prod-nonwoven"],
-    features: [],
-    description:
-      "Takes non-woven fabric roll stock through cutting, sealing and folding in one automatic pass, finishing as ready-to-use carry bags — suited to producers supplying the reusable and eco-bag market.",
-    models: [],
-  },
-  {
     slug: "complete-pe-pp-recycle-pelletizing-line",
     name: "Complete PE/PP Recycle Pelletizing Line",
     category: "recycling",
@@ -271,7 +253,7 @@ const PRODUCTS = [
     gallery: ["prod-recycle-stage-single"],
     features: [],
     description:
-      "A simpler, single-pass pelletizing line for producers working with cleaner waste streams where a second extrusion stage isn't necessary — lower cost and less complexity where the input material doesn't need it. Available in 90, 110 and 120 sizes.",
+      "A simpler, single-pass pelletizing line for producers working with cleaner waste streams where a second extrusion stage isn't necessary, which means lower cost and less complexity where the input material doesn't need it. Available in 90, 110 and 120 sizes.",
     models: [{ code: "90" }, { code: "110" }, { code: "120" }],
   },
   {
@@ -282,7 +264,7 @@ const PRODUCTS = [
     gallery: ["prod-waste-granulate"],
     features: [],
     description:
-      "Reduces waste film to granulate ready for re-extrusion or pelletizing, in 150L and 300L capacities — a practical first processing step for producers handling their own scrap in-house.",
+      "Reduces waste film to granulate ready for re-extrusion or pelletizing, in 150L and 300L capacities, a practical first processing step for producers handling their own scrap in-house.",
     models: [{ code: "150L" }, { code: "300L" }],
   },
   {
@@ -304,7 +286,7 @@ const PRODUCTS = [
     gallery: ["prod-mech-punch"],
     features: [],
     description:
-      "A mechanical press for die-cutting and punching across bag, fabric and packaging production — straightforward to operate and maintain, and a dependable addition to a finishing line.",
+      "A mechanical press for die-cutting and punching across bag, fabric and packaging production. It is straightforward to operate and maintain, and a dependable addition to a finishing line.",
     models: [],
   },
   {
@@ -326,7 +308,7 @@ const PRODUCTS = [
     gallery: ["prod-flexo"],
     features: ["Two-colour", "Four-colour", "Six-colour", "Flexo plate making machine"],
     description:
-      "Two, four and six-colour configurations, plus a dedicated flexo plate-making machine, mean you can match your print investment to your current order book and add colour stations later as demand grows — without replacing the whole line.",
+      "Two, four and six-colour configurations, plus a dedicated flexo plate-making machine, mean you can match your print investment to your current order book and add colour stations later as demand grows, without replacing the whole line.",
     models: [],
   },
   {
@@ -337,7 +319,7 @@ const PRODUCTS = [
     gallery: ["prod-gravure6"],
     features: [],
     description:
-      "Six-colour gravure printing for producers who need sharp, high-repeat print quality on film — well suited to branded packaging that has to look consistent from the first roll to the last.",
+      "Six-colour gravure printing for producers who need sharp, high-repeat print quality on film, well suited to branded packaging that has to look consistent from the first roll to the last.",
     models: [],
   },
   {
@@ -359,7 +341,7 @@ const PRODUCTS = [
     gallery: ["prod-blow-mould"],
     features: ["Automatic", "Semi-automatic", "Hand-feeding"],
     description:
-      "Offered in automatic, semi-automatic and hand-feeding configurations, so the line matches where your operation actually is today — start hand-fed and grow into automatic as volume justifies the investment.",
+      "Offered in automatic, semi-automatic and hand-feeding configurations, so the line matches where your operation actually is today. Start hand-fed and grow into automatic as volume justifies the investment.",
     models: [],
   },
   {
@@ -370,7 +352,7 @@ const PRODUCTS = [
     gallery: ["prod-inject-small"],
     features: [],
     description:
-      "Covers the tonnage range most general plastic injection producers need — caps, containers, houseware and technical parts — without stepping up to heavy industrial clamping force.",
+      "Covers the tonnage range most general plastic injection producers need, such as caps, containers, houseware and technical parts, without stepping up to heavy industrial clamping force.",
     models: [],
   },
   {
@@ -381,7 +363,7 @@ const PRODUCTS = [
     gallery: ["prod-inject-large"],
     features: [],
     description:
-      "For larger, heavier mouldings that sit beyond standard injection tonnage — pallets, crates and large technical parts that need serious clamping force to fill and hold shape correctly.",
+      "For larger, heavier mouldings that sit beyond standard injection tonnage, such as pallets, crates and large technical parts that need serious clamping force to fill and hold shape correctly.",
     models: [{ code: "NS-1300T" }],
   },
   {
@@ -392,29 +374,7 @@ const PRODUCTS = [
     gallery: ["prod-acc-moulds"],
     features: ["Preform & cap moulds", "Mould temperature controllers", "Mixers, dryers & chillers"],
     description:
-      "The supporting equipment that keeps a blow moulding or injection line running at consistent quality — preform and cap moulds, mould temperature controllers, mixers, dryers and chillers — sourced alongside the machines themselves so tooling and equipment stay compatible.",
-    models: [],
-  },
-  {
-    slug: "single-pump-fuel-dispenser",
-    name: "Single Pump Fuel Dispenser",
-    category: "fuel-dispensing",
-    image: "prod-fuel-single",
-    gallery: ["prod-fuel-single"],
-    features: [],
-    description:
-      "A single-pump Sanki dispenser for stations serving one vehicle at a time — straightforward, reliable metering for independent stations and smaller forecourts.",
-    models: [],
-  },
-  {
-    slug: "double-pump-fuel-dispenser",
-    name: "Double Pump Fuel Dispenser",
-    category: "fuel-dispensing",
-    image: "prod-fuel-double",
-    gallery: ["prod-fuel-double"],
-    features: [],
-    description:
-      "Two hoses on a single unit let a station serve two vehicles at once, which helps busy forecourts move more traffic through a pump island without adding another dispenser.",
+      "The supporting equipment that keeps a blow moulding or injection line running at consistent quality: preform and cap moulds, mould temperature controllers, mixers, dryers and chillers, all sourced alongside the machines themselves so tooling and equipment stay compatible.",
     models: [],
   },
 ];

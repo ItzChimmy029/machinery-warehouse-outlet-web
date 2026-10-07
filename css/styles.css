@@ -322,7 +322,7 @@ body.menu-open { overflow: hidden; }
   position: absolute; inset: 0;
   background-size: cover;
   background-position: center;
-  filter: grayscale(1) contrast(1.15) brightness(0.55);
+  filter: brightness(0.6) saturate(1.05);
 }
 .hero::before {
   content: "";
@@ -349,14 +349,14 @@ body.menu-open { overflow: hidden; }
 .hero-meta {
   margin-top: var(--sp-6);
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(1, minmax(0, 1fr));
   gap: var(--sp-4) var(--sp-5);
   max-width: 100%;
   border-top: 1px solid rgba(255,255,255,0.2);
   padding-top: var(--sp-3);
 }
-@media (min-width: 640px) {
-  .hero-meta { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (min-width: 420px) {
+  .hero-meta { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 .hero-meta div { min-width: 0; overflow-wrap: break-word; }
 .hero-meta div { font-family: var(--f-mono); font-size: 0.82rem; color: rgba(255,255,255,0.65); }
@@ -412,10 +412,10 @@ section { position: relative; }
 }
 .card-media img {
   width: 100%; height: 100%; object-fit: cover;
-  filter: grayscale(1) contrast(1.08);
+  filter: none;
   transition: transform 0.6s var(--ease), filter 0.4s var(--ease);
 }
-.card:hover .card-media img { transform: scale(1.06); filter: grayscale(0.35) contrast(1.1); }
+.card:hover .card-media img { transform: scale(1.04); }
 .card-media .tag {
   position: absolute; top: var(--sp-2); left: var(--sp-2);
   background: var(--ink); color: var(--white);
@@ -437,9 +437,9 @@ section { position: relative; }
 .card-foot a.foot-quote:hover { background: var(--red); }
 
 .cat-card { position: relative; aspect-ratio: 3/4; overflow: hidden; display: flex; align-items: flex-end; color: var(--white); }
-.cat-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.1) brightness(0.6); transition: transform 0.7s var(--ease), filter 0.5s var(--ease); }
+.cat-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: brightness(0.88); transition: transform 0.7s var(--ease), filter 0.5s var(--ease); }
 .cat-card::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(20,24,28,0) 30%, rgba(20,24,28,0.92) 100%); }
-.cat-card:hover img { transform: scale(1.08); filter: grayscale(0.4) contrast(1.1) brightness(0.7); }
+.cat-card:hover img { transform: scale(1.06); filter: brightness(1); }
 .cat-card-body { position: relative; z-index: 2; padding: var(--sp-3); }
 .cat-card-body .count { font-family: var(--f-mono); font-size: 0.75rem; color: rgba(255,255,255,0.7); }
 .cat-card-body h3 { font-size: 1.4rem; margin-top: 0.2rem; }
@@ -565,6 +565,73 @@ section { position: relative; }
 .mobile-actionbar svg { width: 20px; height: 20px; }
 body.has-actionbar { padding-bottom: 64px; }
 
+/* --- Floating WhatsApp + Back-to-top ---
+   Both buttons live in the bottom-right corner on every screen size and are
+   stacked, never side by side, so they cannot collide. Offsets are measured
+   from the bottom of the screen: on phones and tablets the fixed action bar
+   (about 64px tall) sits there, so the stack starts above it. Safe-area
+   insets keep the buttons clear of home indicators and rounded corners. */
+:root { --float-size: 52px; --float-gap: 12px; --float-base: calc(var(--sp-3) + env(safe-area-inset-bottom, 0px)); }
+.float-btn {
+  position: fixed;
+  right: calc(var(--sp-3) + env(safe-area-inset-right, 0px));
+  width: var(--float-size); height: var(--float-size);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 10px 24px -8px rgba(20,24,28,0.45);
+  z-index: 160;
+  transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease), opacity 0.25s var(--ease);
+}
+.float-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 28px -8px rgba(20,24,28,0.55); }
+.float-btn .icon { width: 26px; height: 26px; }
+
+/* Phones and tablets: sit above the 64px action bar */
+.float-whatsapp {
+  bottom: calc(64px + var(--float-gap) + env(safe-area-inset-bottom, 0px));
+  background: #25d366;
+  color: #fff;
+  animation: wa-breathe 2.8s ease-in-out infinite;
+}
+.float-totop {
+  bottom: calc(64px + var(--float-gap) + var(--float-size) + var(--float-gap) + env(safe-area-inset-bottom, 0px));
+  background: var(--ink);
+  color: var(--white);
+  border: 1px solid rgba(255,255,255,0.12);
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+}
+.float-totop.is-visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+/* Desktop: no action bar, so the stack starts near the corner */
+@media (min-width: 860px) {
+  .float-whatsapp { bottom: var(--float-base); }
+  .float-totop { bottom: calc(var(--sp-3) + var(--float-size) + var(--float-gap) + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* Subtle, slow, small: a gentle "breathing" scale so the button is noticeable
+   without being distracting. Disabled for visitors who prefer reduced motion
+   by the global prefers-reduced-motion rule at the top of this file. */
+@keyframes wa-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* --- WhatsApp message preview (quote form) --- */
+.wa-preview {
+  border: 1.5px solid var(--line);
+  background: var(--white);
+  padding: var(--sp-3);
+}
+.wa-preview .label { font-family: var(--f-mono); font-size: 0.72rem; color: var(--steel); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.5rem; }
+.wa-preview pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--f-body);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
 /* --- Breadcrumb --- */
 .breadcrumb { font-family: var(--f-mono); font-size: 0.82rem; color: var(--steel); display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 .breadcrumb a:hover { color: var(--red); }
@@ -591,6 +658,16 @@ body.has-actionbar { padding-bottom: 64px; }
 .hidden { display: none !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
 .icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15em; }
+
+/* --- Product detail photo: full machine, true aspect ratio, never cropped --- */
+.product-photo-wrap {
+  display: block; width: 100%; padding: 0; border: 1px solid var(--line);
+  background: #ecebe7; cursor: zoom-in; overflow: hidden;
+}
+.product-photo {
+  display: block; width: 100%; height: auto; max-height: 78vh;
+  object-fit: contain; margin: 0 auto;
+}
 
 /* --- Filter chips --- */
 .chips { display: flex; flex-wrap: wrap; gap: 0.6rem; }
@@ -623,7 +700,7 @@ body.has-actionbar { padding-bottom: 64px; }
 /* --- Lightbox --- */
 .lightbox { position: fixed; inset: 0; background: rgba(20,24,28,0.94); z-index: 500; display: none; align-items: center; justify-content: center; padding: var(--sp-4); }
 .lightbox.is-open { display: flex; }
-.lightbox img { max-width: 92vw; max-height: 82vh; object-fit: contain; filter: grayscale(0.2); }
+.lightbox img { max-width: 92vw; max-height: 82vh; object-fit: contain; }
 .lightbox-close { position: absolute; top: var(--sp-3); right: var(--sp-3); color: var(--white); width: 44px; height: 44px; border: 1.5px solid rgba(255,255,255,0.4); display: flex; align-items: center; justify-content: center; }
 
 /* --- 404 --- */

@@ -1,0 +1,10 @@
+# GitHub Pages (Jekyll) publish settings.
+# Keeps developer tooling and docs out of the published website.
+exclude:
+  - build.py
+  - build_pages.py
+  - README.md
+  - SECURITY.md
+  - _headers
+  - tests
+  - .gitignore

@@ -80,11 +80,39 @@
     $$(".js-year").forEach((el) => (el.textContent = new Date().getFullYear()));
   }
 
-  /* ---------------- Contact / WhatsApp helpers ---------------- */
+  /* ---------------- Contact / WhatsApp helpers ----------------
+     Single source of truth for the WhatsApp destination: COMPANY.whatsapp
+     (in js/data.js). Nothing else in this file — or anywhere on the site —
+     hardcodes a phone number or builds a wa.me link independently, so a
+     future number change only ever happens in one place. */
   function digitsOnly(str) {
     return (str || "").replace(/[^\d+]/g, "");
   }
 
+  function escapeHtml(str) {
+    return String(str ?? "").replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    }[c]));
+  }
+
+  // Responsive photo: lighter file for ordinary screens, full-size file for
+  // large or high-density screens, so images stay sharp without every grid
+  // downloading the big version.
+  function imgTag(name, alt, sizes) {
+    const n = encodeURIComponent(name);
+    return `<img src="assets/img/${n}-sm.jpg" srcset="assets/img/${n}-sm.jpg 800w, assets/img/${n}.jpg 1600w" sizes="${sizes}" alt="${escapeHtml(alt)}" loading="lazy" decoding="async">`;
+  }
+
+  // Some phones cannot hand very long links over to WhatsApp. Normal enquiries
+  // are around 1,800 characters once encoded; this limit only trips for
+  // extreme input (for example a maxed-out message full of emoji). We ask the
+  // visitor to shorten it rather than silently cutting any of their text.
+  const MAX_WA_URL_LENGTH = 6000;
+  const TOO_LONG_MESSAGE = "That message is too long to send through WhatsApp. Please shorten it a little and try again.";
+
+  // The WhatsApp number is fixed application configuration (COMPANY.whatsapp).
+  // No code path ever lets page/query-string/form input choose the
+  // destination number — callers can only supply the message text.
   function buildWhatsAppLink(message) {
     const number = COMPANY.whatsapp;
     const isPlaceholder = !number || /_HERE$/.test(number);
@@ -92,6 +120,62 @@
     const digits = digitsOnly(number).replace(/^\+/, "");
     const text = encodeURIComponent(message || `Hello ${COMPANY.name}, I would like more information.`);
     return `https://wa.me/${digits}?text=${text}`;
+  }
+
+  /* Contextual message builders. Each returns plain text; buildWhatsAppLink
+     handles encodeURIComponent, so callers never need to encode themselves. */
+  function waLineForProduct(product) {
+    const cat = getCategoryBySlug(product.category);
+    const lines = [`Machine: ${product.name}`];
+    if (cat) lines.push(`Category: ${cat.name}`);
+    if (product.models && product.models.length) {
+      const codes = product.models.map((m) => m.code + (m.spec ? ` (${m.spec})` : "")).join(", ");
+      lines.push(`Model(s): ${codes}`);
+    }
+    return lines.join("\n");
+  }
+
+  function waMessageForProduct(product, intent) {
+    const info = waLineForProduct(product);
+    switch (intent) {
+      case "quote":
+        return `Hello ${COMPANY.name}, I would like a quote for the following machine.\n\n${info}\n\nPlease send me pricing, availability and delivery information.\n\nThank you.`;
+      case "availability":
+        return `Hello ${COMPANY.name}, I would like to check availability for the following machine.\n\n${info}\n\nIs this currently in stock, and what is the lead time if not?\n\nThank you.`;
+      case "specs":
+        return `Hello ${COMPANY.name}, could you share more technical detail on this machine?\n\n${info}\n\nI am specifically interested in the full specifications and features.\n\nThank you.`;
+      case "enquire":
+      default:
+        return `Hello ${COMPANY.name}, I am interested in the following machine.\n\n${info}\n\nPlease send me more information, current pricing and availability.\n\nThank you.`;
+    }
+  }
+
+  function waMessageGeneral(intent) {
+    switch (intent) {
+      case "quote":
+        return `Hello ${COMPANY.name}, I would like to request a quote. Could you help me with pricing and availability for a machine I'm interested in?`;
+      case "spareparts":
+        return `Hello ${COMPANY.name}, I'm looking for a spare part for one of your machines. Could you help me check availability?`;
+      case "consult":
+        return `Hello ${COMPANY.name}, I'd like to speak with someone about which machine would suit my production needs. Could we set up a time to talk?`;
+      case "general":
+      default:
+        return `Hello ${COMPANY.name}, I have a question about your machines and would like some assistance.`;
+    }
+  }
+
+  // Shows "Opening WhatsApp..." plus a manual fallback link, built with DOM
+  // APIs (no innerHTML), so no message content can ever be parsed as markup.
+  function showWhatsAppOpening(statusEl, link, what) {
+    statusEl.textContent = "";
+    statusEl.append(`Opening WhatsApp with your ${what} now. If it doesn't open automatically, `);
+    const a = document.createElement("a");
+    a.href = link;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.textContent = "tap here to open WhatsApp";
+    statusEl.append(a, ".");
+    statusEl.classList.add("is-visible");
   }
 
   function initContactLinks() {
@@ -108,22 +192,30 @@
     // Full lists — every phone number / email, each as its own link.
     $$("[data-phone-list]").forEach((el) => {
       el.innerHTML = COMPANY.phones
-        .map((p) => `<a href="tel:${digitsOnly(p)}">${p}</a>`)
+        .map((p) => `<a href="tel:${digitsOnly(p)}">${escapeHtml(p)}</a>`)
         .join('<span class="sep" aria-hidden="true"></span>');
     });
     $$("[data-email-list]").forEach((el) => {
       el.innerHTML = COMPANY.emails
-        .map((e) => `<a href="mailto:${e}">${e.replace("@", "@<wbr>")}</a>`)
+        .map((e) => `<a href="mailto:${escapeHtml(e)}">${escapeHtml(e).replace("@", "@<wbr>")}</a>`)
         .join('<span class="sep" aria-hidden="true"></span>');
     });
+    $$("[data-whatsapp-label]").forEach((el) => {
+      el.textContent = `WhatsApp: ${COMPANY.whatsappDisplay}`;
+    });
+    // Generic WhatsApp wiring for static links: data-whatsapp-product is a
+    // product SLUG (looked up in our own data, never raw text) and
+    // data-whatsapp-intent picks the message template. Both are optional.
     $$("[data-whatsapp]").forEach((el) => {
-      const productName = el.dataset.whatsappProduct;
-      const msg = productName
-        ? `Hello ${COMPANY.name}, I am interested in the ${productName}. Please provide more information.`
-        : undefined;
+      const slug = el.dataset.whatsappProduct;
+      const intent = el.dataset.whatsappIntent || "enquire";
+      const product = slug ? getProductBySlug(slug) : null;
+      const msg = product ? waMessageForProduct(product, intent) : waMessageGeneral(intent);
       const link = buildWhatsAppLink(msg);
       if (link) {
         el.href = link;
+        el.target = "_blank";
+        el.rel = "noopener";
         el.classList.remove("hidden");
       } else {
         el.href = "#";
@@ -171,23 +263,24 @@
 
     function cardHtml(p) {
       const cat = getCategoryBySlug(p.category);
+      const slug = encodeURIComponent(p.slug);
       const modelsLine = p.models && p.models.length
-        ? p.models.map((m) => m.code).join(" · ")
+        ? p.models.map((m) => escapeHtml(m.code)).join(" · ")
         : "";
       return `
-      <div class="card reveal" data-category="${p.category}" data-name="${p.name.toLowerCase()}">
-        <a href="product.html?slug=${p.slug}" class="card-media">
-          <img src="assets/img/${p.image}.jpg" alt="${p.name}" loading="lazy">
-          <span class="tag">${cat ? cat.short : ""}</span>
+      <div class="card reveal" data-category="${escapeHtml(p.category)}" data-name="${escapeHtml(p.name.toLowerCase())}">
+        <a href="product.html?slug=${slug}" class="card-media">
+          ${imgTag(p.image, p.name, "(max-width: 560px) 100vw, (max-width: 960px) 50vw, 400px")}
+          <span class="tag">${cat ? escapeHtml(cat.short) : ""}</span>
         </a>
         <div class="card-body">
-          <span class="cat-label">${cat ? cat.name : ""}</span>
-          <h3><a href="product.html?slug=${p.slug}">${p.name}</a></h3>
+          <span class="cat-label">${cat ? escapeHtml(cat.name) : ""}</span>
+          <h3><a href="product.html?slug=${slug}">${escapeHtml(p.name)}</a></h3>
           ${modelsLine ? `<div class="models">${modelsLine}</div>` : ""}
         </div>
         <div class="card-foot">
-          <a href="product.html?slug=${p.slug}">View Details</a>
-          <a href="quote.html?product=${p.slug}" class="foot-quote">Request Quote</a>
+          <a href="product.html?slug=${slug}">View Details</a>
+          <a href="quote.html?product=${slug}" class="foot-quote">Request Quote</a>
         </div>
       </div>`;
     }
@@ -209,7 +302,7 @@
     if (chipWrap) {
       chipWrap.innerHTML =
         `<button class="chip" data-cat="all">All Machinery</button>` +
-        CATEGORIES.map((c) => `<button class="chip" data-cat="${c.slug}">${c.short}</button>`).join("");
+        CATEGORIES.map((c) => `<button class="chip" data-cat="${escapeHtml(c.slug)}">${escapeHtml(c.short)}</button>`).join("");
       $$(".chip", chipWrap).forEach((chip) => {
         if (chip.dataset.cat === activeCategory) chip.classList.add("is-active");
         chip.addEventListener("click", () => {
@@ -235,8 +328,8 @@
     grid.innerHTML = SPARE_PARTS_GROUPS.map(
       (g, i) => `
       <div class="card reveal" style="--i:${i % 4}">
-        <div class="card-media"><img src="assets/img/${g.image}.jpg" alt="${g.name}" loading="lazy"></div>
-        <div class="card-body"><h4>${g.name}</h4></div>
+        <div class="card-media">${imgTag(g.image, g.name, "(max-width: 560px) 100vw, (max-width: 960px) 50vw, 300px")}</div>
+        <div class="card-body"><h4>${escapeHtml(g.name)}</h4></div>
       </div>`
     ).join("");
   }
@@ -249,12 +342,12 @@
     const product = getProductBySlug(params.get("slug"));
 
     if (!product) {
-      root.innerHTML = `<div class="empty-state"><h3 class="h3">Machine not found</h3><p class="mt-2">This product may have moved. Browse the full catalogue instead.</p><a href="machinery.html" class="btn btn-dark mt-4">View All Machinery</a></div>`;
+      root.innerHTML = `<div class="empty-state"><h3 class="h3">Machine not found</h3><p class="mt-2">This machine may have moved. Browse all machinery instead.</p><a href="machinery.html" class="btn btn-dark mt-4">View All Machinery</a></div>`;
       return;
     }
 
     const cat = getCategoryBySlug(product.category);
-    document.title = `${product.name} — ${COMPANY.name}`;
+    document.title = `${product.name} | ${COMPANY.name}`;
     const metaDesc = $('meta[name="description"]');
     if (metaDesc) metaDesc.setAttribute("content", `${product.name} from ${COMPANY.name}. ${cat.name}. Request specifications and a quote.`);
 
@@ -279,7 +372,7 @@
 
     const featWrap = $("#product-features");
     if (product.features && product.features.length) {
-      featWrap.innerHTML = product.features.map((f) => `<li>${f}</li>`).join("");
+      featWrap.innerHTML = product.features.map((f) => `<li>${escapeHtml(f)}</li>`).join("");
     } else {
       featWrap.closest(".product-features-block")?.classList.add("hidden");
     }
@@ -287,15 +380,23 @@
     const specWrap = $("#product-specs");
     if (product.models && product.models.length) {
       specWrap.innerHTML = product.models
-        .map((m) => `<tr><td>Model</td><td>${m.code}${m.spec ? ` — ${m.spec}` : ""}</td></tr>`)
+        .map((m) => `<tr><td>Model</td><td>${escapeHtml(m.code)}${m.spec ? ` (${escapeHtml(m.spec)})` : ""}</td></tr>`)
         .join("");
     } else {
       specWrap.closest(".product-specs-block")?.classList.add("hidden");
     }
 
-    $("#product-quote-link").href = `quote.html?product=${product.slug}`;
+    $("#product-quote-link").href = `quote.html?product=${encodeURIComponent(product.slug)}`;
     const waBtn = $("#product-whatsapp");
-    if (waBtn) waBtn.dataset.whatsappProduct = product.name;
+    if (waBtn) {
+      waBtn.dataset.whatsappProduct = product.slug;
+      waBtn.dataset.whatsappIntent = "enquire";
+    }
+    const waAvailBtn = $("#product-whatsapp-availability");
+    if (waAvailBtn) {
+      waAvailBtn.dataset.whatsappProduct = product.slug;
+      waAvailBtn.dataset.whatsappIntent = "availability";
+    }
 
     // related products
     const related = getProductsByCategory(product.category).filter((p) => p.slug !== product.slug).slice(0, 3);
@@ -308,11 +409,11 @@
           .map(
             (p) => `
           <div class="card reveal is-visible">
-            <a href="product.html?slug=${p.slug}" class="card-media">
-              <img src="assets/img/${p.image}.jpg" alt="${p.name}" loading="lazy">
+            <a href="product.html?slug=${encodeURIComponent(p.slug)}" class="card-media">
+              ${imgTag(p.image, p.name, "(max-width: 560px) 100vw, (max-width: 960px) 50vw, 400px")}
             </a>
             <div class="card-body">
-              <h4><a href="product.html?slug=${p.slug}">${p.name}</a></h4>
+              <h4><a href="product.html?slug=${encodeURIComponent(p.slug)}">${escapeHtml(p.name)}</a></h4>
             </div>
           </div>`
           )
@@ -322,7 +423,13 @@
     initContactLinks();
   }
 
-  /* ---------------- Quote form ---------------- */
+  /* ---------------- Quote form ----------------
+     No backend exists (this is a static site), so the form's job is to
+     collect a clean, complete enquiry and hand it to WhatsApp — the
+     destination number always comes from COMPANY.whatsapp (see the
+     WhatsApp helpers above), never from anything on this page. Every
+     field the visitor fills in is included in the message; nothing is
+     silently dropped. */
   function initQuoteForm() {
     const form = $("#quote-form");
     if (!form) return;
@@ -330,11 +437,10 @@
     const preselect = params.get("product");
     const productSelect = $("#qf-product");
 
-    CATEGORIES.forEach(() => {});
     if (productSelect) {
       productSelect.innerHTML =
         `<option value="">Select a machine (optional)</option>` +
-        PRODUCTS.map((p) => `<option value="${p.slug}">${p.name}</option>`).join("");
+        PRODUCTS.map((p) => `<option value="${encodeURIComponent(p.slug)}">${escapeHtml(p.name)}</option>`).join("");
       if (preselect && getProductBySlug(preselect)) {
         productSelect.value = preselect;
         const chip = $("#selected-product-chip");
@@ -350,71 +456,196 @@
     }
 
     const requiredFields = ["qf-name", "qf-phone", "qf-message"];
+    // A permissive but real check: at least 7 digits, and only characters
+    // that legitimately appear in phone numbers. Client-side only — this
+    // is a UX convenience, not a security boundary (there is no server
+    // this could protect; the only destination is a wa.me link the
+    // visitor's own browser opens).
+    const PHONE_RE = /^[\d+()\-.\s]{7,20}$/;
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    function setError(id, isError) {
+      $("#" + id).closest(".field").classList.toggle("has-error", isError);
+    }
 
     function validate() {
       let ok = true;
       requiredFields.forEach((id) => {
         const el = $("#" + id);
-        const field = el.closest(".field");
-        if (!el.value.trim()) {
-          field.classList.add("has-error");
-          ok = false;
-        } else {
-          field.classList.remove("has-error");
-        }
+        if (!el.value.trim()) { setError(id, true); ok = false; }
+        else setError(id, false);
       });
+      const phoneEl = $("#qf-phone");
+      if (phoneEl.value.trim() && !PHONE_RE.test(phoneEl.value.trim())) {
+        setError("qf-phone", true); ok = false;
+      }
       const emailEl = $("#qf-email");
-      if (emailEl.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailEl.value)) {
-        emailEl.closest(".field").classList.add("has-error");
-        ok = false;
+      if (emailEl.value.trim() && !EMAIL_RE.test(emailEl.value.trim())) {
+        setError("qf-email", true); ok = false;
       } else {
-        emailEl.closest(".field").classList.remove("has-error");
+        setError("qf-email", false);
       }
       return ok;
+    }
+
+    // Build the full structured message from every field the visitor filled
+    // in. Nothing entered is dropped; anything left blank is simply omitted
+    // from its section rather than sent as an empty line.
+    function buildQuoteMessage() {
+      const val = (id) => $("#" + id).value.trim();
+      const name = val("qf-name");
+      const company = val("qf-company");
+      const phone = val("qf-phone");
+      const email = val("qf-email");
+      const location_ = val("qf-location");
+      const quantity = val("qf-quantity");
+      const message = val("qf-message");
+      const slug = productSelect ? productSelect.value : "";
+      const product = slug ? getProductBySlug(slug) : null;
+
+      const customerLines = [`Name: ${name}`];
+      if (company) customerLines.push(`Company: ${company}`);
+      customerLines.push(`Phone: ${phone}`);
+      if (email) customerLines.push(`Email: ${email}`);
+      if (location_) customerLines.push(`Location: ${location_}`);
+
+      const machineLines = [];
+      if (product) {
+        machineLines.push(`Machine: ${product.name}`);
+        const cat = getCategoryBySlug(product.category);
+        if (cat) machineLines.push(`Category: ${cat.name}`);
+        if (product.models && product.models.length) {
+          machineLines.push(`Model(s): ${product.models.map((m) => m.code + (m.spec ? ` (${m.spec})` : "")).join(", ")}`);
+        }
+      }
+      if (quantity) machineLines.push(`Quantity: ${quantity}`);
+
+      const parts = [
+        `Hello ${COMPANY.name},`,
+        "",
+        "A new quotation request has been submitted through the website.",
+        "",
+        "CUSTOMER INFORMATION",
+        customerLines.join("\n"),
+      ];
+      if (machineLines.length) {
+        parts.push("", "MACHINE INFORMATION", machineLines.join("\n"));
+      }
+      parts.push("", "REQUEST DETAILS", message);
+      parts.push("", "Please provide the quotation, current availability, delivery information and any other relevant details.", "", "Thank you.");
+      return parts.join("\n");
     }
 
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       const status = $("#quote-status");
       if (!validate()) {
-        status.textContent = "Please fill in the required fields before sending.";
+        status.textContent = "Please fill in the required fields correctly before sending.";
         status.classList.add("is-visible", "is-error");
         status.scrollIntoView({ behavior: "smooth", block: "center" });
         return;
       }
-      const submitBtn = $('button[type="submit"]', form);
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Sending…";
+      const messageText = buildQuoteMessage();
+      const link = buildWhatsAppLink(messageText);
       status.classList.remove("is-error");
 
-      // Integration point: replace this block with a real submission
-      // (e.g. fetch('/api/quote', { method: 'POST', body: new FormData(form) }))
-      // No backend is connected yet, so nothing is actually transmitted below.
-      setTimeout(() => {
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Send Enquiry";
-        status.textContent =
-          "Your enquiry is ready to send. This form is not yet connected to a backend or inbox — see the integration note in js/main.js, or contact the team directly below in the meantime.";
+      if (!link) {
+        status.textContent = "WhatsApp isn't configured yet. Please call or email us directly using the details on this page.";
         status.classList.add("is-visible");
-        form.reset();
-        $("#selected-product-chip")?.classList.remove("is-visible");
-      }, 700);
+        return;
+      }
+
+      if (link.length > MAX_WA_URL_LENGTH) {
+        status.textContent = TOO_LONG_MESSAGE;
+        status.classList.add("is-visible", "is-error");
+        status.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+
+      // Let the visitor see exactly what will be sent before/while WhatsApp opens.
+      const previewEl = $("#quote-message-preview");
+      if (previewEl) {
+        previewEl.textContent = messageText;
+        previewEl.closest(".wa-preview")?.classList.remove("hidden");
+      }
+      showWhatsAppOpening(status, link, "request");
+      window.open(link, "_blank", "noopener");
     });
   }
 
-  /* ---------------- Contact page copy buttons ---------------- */
-  function initCopyButtons() {
-    $$("[data-copy]").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        try {
-          await navigator.clipboard.writeText(btn.dataset.copy);
-          const original = btn.textContent;
-          btn.textContent = "Copied";
-          setTimeout(() => (btn.textContent = original), 1500);
-        } catch (e) {
-          /* clipboard unavailable — ignore silently */
-        }
+  /* ---------------- Contact page general enquiry form ---------------- */
+  function initContactForm() {
+    const form = $("#contact-form");
+    if (!form) return;
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    function validate() {
+      let ok = true;
+      const name = $("#cf-name"), email = $("#cf-email"), message = $("#cf-message");
+      [name, message].forEach((el) => {
+        const field = el.closest(".field");
+        if (!el.value.trim()) { field.classList.add("has-error"); ok = false; }
+        else field.classList.remove("has-error");
       });
+      const emailField = email.closest(".field");
+      if (!email.value.trim() || !EMAIL_RE.test(email.value.trim())) {
+        emailField.classList.add("has-error"); ok = false;
+      } else {
+        emailField.classList.remove("has-error");
+      }
+      return ok;
+    }
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const status = $("#contact-status");
+      if (!validate()) {
+        status.textContent = "Please fill in the required fields correctly before sending.";
+        status.classList.remove("is-error");
+        status.classList.add("is-visible", "is-error");
+        return;
+      }
+      const name = $("#cf-name").value.trim();
+      const email = $("#cf-email").value.trim();
+      const message = $("#cf-message").value.trim();
+      const text = `Hello ${COMPANY.name},\n\nMy name is ${name} (${email}).\n\n${message}\n\nThank you.`;
+      const link = buildWhatsAppLink(text);
+      status.classList.remove("is-error");
+      if (!link) {
+        status.textContent = "WhatsApp isn't configured yet. Please call or email us directly using the details above.";
+        status.classList.add("is-visible");
+        return;
+      }
+      if (link.length > MAX_WA_URL_LENGTH) {
+        status.textContent = TOO_LONG_MESSAGE;
+        status.classList.add("is-visible", "is-error");
+        return;
+      }
+      showWhatsAppOpening(status, link, "message");
+      window.open(link, "_blank", "noopener");
+    });
+  }
+
+  /* ---------------- Floating WhatsApp + Back-to-top ---------------- */
+  function initFloatingButtons() {
+    const waBtn = $(".float-whatsapp");
+    const topBtn = $(".float-totop");
+    if (waBtn) {
+      waBtn.dataset.whatsappIntent = "general";
+      // initContactLinks() (already run) wires the href; this button just
+      // needs to exist in the DOM before that pass.
+    }
+    if (!topBtn) return;
+
+    function onScroll() {
+      const show = window.scrollY > 480;
+      topBtn.classList.toggle("is-visible", show);
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+
+    topBtn.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: prefersReducedMotion ? "auto" : "smooth" });
     });
   }
 
@@ -550,12 +781,14 @@
     initFooterYear();
     initContactLinks();
     initMobileActionBar();
+    initFloatingButtons();
+    initContactLinks(); // re-run: wires the floating WhatsApp button added above
     initLightbox();
     initMachineryFilters();
     initSparePartsGrid();
     initProductPage();
     initQuoteForm();
-    initCopyButtons();
+    initContactForm();
     initHero3D();
     initReveal();
   });
