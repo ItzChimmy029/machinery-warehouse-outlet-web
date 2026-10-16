@@ -45,6 +45,7 @@ REMOVED_TERMS = {
     "fuel dispenser": "fuel" + r"[\s-]*dispens",
     "pump dispenser": "pump" + r"\s+fuel",
     "non woven": "non" + r"[\s-]*woven",
+    "removed email": "juni" + "net",
 }
 
 print("== Removed content must not appear anywhere ==")
@@ -131,8 +132,29 @@ gi = read(os.path.join(ROOT, ".gitignore")) if os.path.exists(os.path.join(ROOT,
 check(".gitignore covers .env and keys", ".env" in gi and "*.pem" in gi)
 check("no .github/workflows (no CI secrets surface)", not os.path.exists(os.path.join(ROOT, ".github")))
 
+print("\n== Location and email ==")
+m = re.search(r"location:\s*\{[^}]*lat:\s*(-?[\d.]+)[^}]*lng:\s*(-?[\d.]+)", data, re.S)
+LAT, LNG = (m.group(1), m.group(2)) if m else (None, None)
+check("single location setting found in js/data.js", bool(m), f"{LAT},{LNG}")
+emails = re.findall(r'"([^"@\s]+@[^"\s]+)"', re.search(r"emails:\s*\[(.*?)\]", data, re.S).group(1))
+check("exactly one official email, the Gmail address", emails == ["machines.warehouse@gmail.com"], str(emails))
+pair = re.compile(r"-?\d{1,3}\.\d{4,},\s*-?\d{1,3}\.\d{4,}")
+stray = []
+for p in text_files():
+    if p.endswith(".md") or rel(p) == os.path.join("js", "data.js"):
+        continue
+    for hit in pair.findall(read(p)):
+        if [x.strip() for x in hit.split(",")] != [LAT, LNG]:
+            stray.append(f"{rel(p)}: {hit}")
+check("no other coordinate pair appears anywhere in code or pages", not stray, "; ".join(stray[:3]))
+contact = read(os.path.join(ROOT, "contact.html"))
+for label, needle in (("embedded map", "output=embed"), ("Google directions", "maps/dir/?api=1&destination="), ("Apple Maps", "maps.apple.com/?daddr="), ("Waze", "waze.com/ul?ll=")):
+    ok = re.search(re.escape(needle) + r"[^\"]*", contact) and f"{LAT},{LNG}" in re.search(re.escape(needle) + r"[^\"]*", contact).group(0) if needle != "output=embed" else (f"q={LAT},{LNG}" in contact and "output=embed" in contact)
+    check(f"{label} uses the configured coordinates", bool(ok))
+check("old address-text map query removed", "maps?q=Awada" not in contact and "Ichi+Street" not in contact)
+
 print("\n== External hosts and mixed content ==")
-ALLOWED = {"cdnjs.cloudflare.com", "fonts.googleapis.com", "fonts.gstatic.com", "www.google.com", "wa.me", "www.w3.org"}
+ALLOWED = {"cdnjs.cloudflare.com", "fonts.googleapis.com", "fonts.gstatic.com", "www.google.com", "wa.me", "www.w3.org", "maps.apple.com", "waze.com"}
 hosts = {}
 for p in text_files():
     for u in re.findall(r"https?://[^\s\"'<>)`;,\\]+", read(p)):

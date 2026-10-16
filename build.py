@@ -5,6 +5,7 @@ runtime include (the site is meant to also work opened straight from
 disk via file://, where fetch() of local partials would be blocked)."""
 
 import os
+import re
 
 OUT = os.path.dirname(os.path.abspath(__file__))
 
@@ -141,7 +142,7 @@ def footer():
           <li><span data-phone-list></span></li>
           <li><a href="#" data-whatsapp data-whatsapp-intent="general" data-whatsapp-label></a></li>
           <li><span data-email-list></span></li>
-          <li>Awada Industrial Zone, Anambra State</li>
+          <li><a href="{GOOGLE_PLACE_URL}" target="_blank" rel="noopener">Awada Industrial Zone, Anambra State</a></li>
         </ul>
       </div>
     </div>
@@ -213,6 +214,27 @@ def count_products():
     return src[start:end].count("slug:")
 
 PRODUCT_COUNT = count_products()
+
+def load_location():
+    """Reads the map pin from js/data.js (COMPANY.location) so the embedded map,
+    every directions link and the browser-side distance tool all come from the
+    same two numbers."""
+    with open(os.path.join(OUT, "js", "data.js")) as f:
+        src = f.read()
+    block = src[src.index("location: {"):]
+    lat = re.search(r"lat:\s*(-?\d+(?:\.\d+)?)", block).group(1)
+    lng = re.search(r"lng:\s*(-?\d+(?:\.\d+)?)", block).group(1)
+    verified = re.search(r"verified:\s*(true|false)", block).group(1) == "true"
+    return lat, lng, verified
+
+LAT, LNG, LOCATION_VERIFIED = load_location()
+COORDS = f"{LAT},{LNG}"
+# Documented URL formats: Google Maps URLs API, Apple Maps URL scheme, Waze deep links.
+MAP_EMBED_URL = f"https://www.google.com/maps?q={COORDS}&z=17&output=embed"
+GOOGLE_PLACE_URL = f"https://www.google.com/maps/search/?api=1&query={COORDS}"
+GOOGLE_DIRECTIONS_URL = f"https://www.google.com/maps/dir/?api=1&destination={COORDS}&travelmode=driving"
+APPLE_MAPS_URL = f"https://maps.apple.com/?daddr={COORDS}&dirflg=d"
+WAZE_URL = f"https://waze.com/ul?ll={COORDS}&navigate=yes"
 
 def write(name, content):
     with open(os.path.join(OUT, name), "w") as f:

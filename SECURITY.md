@@ -20,6 +20,14 @@ opens; it is not transmitted to any server we operate.
 - All `target="_blank"` links use `rel="noopener"`.
 - `.gitignore` blocks `.env`, keys and credentials. `_config.yml` keeps tooling out of the published site.
 
+## Location privacy
+
+The "Show my distance" button uses the browser location API only after the
+visitor presses it and accepts the permission prompt. The position is used on
+the page to compute a distance and is not stored or transmitted (the browser
+test suite checks that no request carries it). `_headers` allows geolocation
+for the site itself and nothing else.
+
 ## What cannot be done on GitHub Pages
 
 GitHub Pages does not let a repository set HTTP response headers, so these are

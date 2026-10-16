@@ -116,10 +116,25 @@
       </form>
     </div>
     <div>
+
       <h3 class="h4 mb-3">Find Us</h3>
-      <div style="border:1px solid var(--line);aspect-ratio:4/3">
-        <iframe title="Map to Machinery Warehouse Outlet" src="https://www.google.com/maps?q=Awada+Industrial+Zone,+2+Ichi+Street,+Off+Ezeiweka+Road,+Awada-Obosi,+Anambra+State,+Nigeria&output=embed" style="width:100%;height:100%;border:0;filter:grayscale(0.4) contrast(1.05)" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+      <div class="map-frame">
+        <iframe title="Map showing the Machinery Warehouse Outlet location" src="https://www.google.com/maps?q=6.118714,6.808624&z=17&output=embed" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
       </div>
+      <p class="coords">GPS coordinates: <span class="mono">6.118714, 6.808624</span></p>
+      <div class="map-actions">
+        <a class="btn btn-primary" href="https://www.google.com/maps/dir/?api=1&destination=6.118714,6.808624&travelmode=driving" target="_blank" rel="noopener">Get directions</a>
+        <a class="btn btn-outline" href="https://www.google.com/maps/search/?api=1&query=6.118714,6.808624" target="_blank" rel="noopener">Google Maps</a>
+        <a class="btn btn-outline" href="https://maps.apple.com/?daddr=6.118714,6.808624&dirflg=d" target="_blank" rel="noopener">Apple Maps</a>
+        <a class="btn btn-outline" href="https://waze.com/ul?ll=6.118714,6.808624&navigate=yes" target="_blank" rel="noopener">Waze</a>
+      </div>
+      <div class="distance-tool">
+        <button type="button" class="btn btn-dark btn-sm" id="distance-btn">Show my distance from the office</button>
+        <p class="text-steel distance-result" id="distance-result" role="status" aria-live="polite"></p>
+        <p class="map-note">Your location is used only on your device to work out the distance. It is never sent anywhere.</p>
+      </div>
+      <p class="map-note">The pin marks the Ezeiweka Road area in Awada. Use the address above for the exact premises.</p>
+
     </div>
   </div>
 </section>
@@ -158,7 +173,7 @@
           <li><span data-phone-list></span></li>
           <li><a href="#" data-whatsapp data-whatsapp-intent="general" data-whatsapp-label></a></li>
           <li><span data-email-list></span></li>
-          <li>Awada Industrial Zone, Anambra State</li>
+          <li><a href="https://www.google.com/maps/search/?api=1&query=6.118714,6.808624" target="_blank" rel="noopener">Awada Industrial Zone, Anambra State</a></li>
         </ul>
       </div>
     </div>

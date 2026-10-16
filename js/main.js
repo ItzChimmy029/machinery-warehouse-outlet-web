@@ -573,6 +573,53 @@
     });
   }
 
+  /* ---------------- Distance from the visitor (live GPS) ----------------
+     Uses the browser's own location API, only after the visitor presses the
+     button and agrees to the permission prompt. The position is used right
+     here to work out a straight-line distance to COMPANY.location and is
+     never sent anywhere. */
+  function haversineKm(lat1, lng1, lat2, lng2) {
+    const rad = (d) => (d * Math.PI) / 180;
+    const dLat = rad(lat2 - lat1), dLng = rad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLng / 2) ** 2;
+    return 6371.0088 * 2 * Math.asin(Math.sqrt(a));
+  }
+
+  function initDistanceFinder() {
+    const btn = $("#distance-btn");
+    const out = $("#distance-result");
+    if (!btn || !out) return;
+    const loc = COMPANY.location;
+
+    btn.addEventListener("click", () => {
+      if (!("geolocation" in navigator)) {
+        out.textContent = "This browser cannot share your location. Please use the direction buttons instead.";
+        return;
+      }
+      btn.disabled = true;
+      out.textContent = "Finding your location...";
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const km = haversineKm(pos.coords.latitude, pos.coords.longitude, loc.lat, loc.lng);
+          out.textContent = km < 1
+            ? `You are about ${Math.max(1, Math.round(km * 1000))} m from our office in a straight line.`
+            : `You are about ${km.toFixed(1)} km from our office in a straight line. Tap Get directions for the driving route.`;
+          btn.disabled = false;
+        },
+        (err) => {
+          const reasons = {
+            1: "Location permission was denied. You can still use the direction buttons.",
+            2: "Your location could not be determined. Please try again or use the direction buttons.",
+            3: "Finding your location took too long. Please try again or use the direction buttons.",
+          };
+          out.textContent = reasons[err.code] || reasons[2];
+          btn.disabled = false;
+        },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 }
+      );
+    });
+  }
+
   /* ---------------- Contact page general enquiry form ---------------- */
   function initContactForm() {
     const form = $("#contact-form");
@@ -789,6 +836,7 @@
     initProductPage();
     initQuoteForm();
     initContactForm();
+    initDistanceFinder();
     initHero3D();
     initReveal();
   });

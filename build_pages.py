@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from build import page, write, CATEGORIES_META, PRODUCT_COUNT
+from build import (page, write, CATEGORIES_META, PRODUCT_COUNT, LAT, LNG, LOCATION_VERIFIED,
+                   MAP_EMBED_URL, GOOGLE_PLACE_URL, GOOGLE_DIRECTIONS_URL, APPLE_MAPS_URL, WAZE_URL)
 
 
 def img(name, alt, sizes="(max-width: 640px) 100vw, 400px", extra=""):
@@ -11,6 +12,35 @@ def img(name, alt, sizes="(max-width: 640px) 100vw, 400px", extra=""):
     return (f'<img src="assets/img/{name}-sm.jpg" '
             f'srcset="assets/img/{name}-sm.jpg 800w, assets/img/{name}.jpg 1600w" '
             f'sizes="{sizes}" alt="{alt}" loading="lazy" decoding="async"{(" " + extra) if extra else ""}>')
+
+
+MAP_NOTE = "" if LOCATION_VERIFIED else (
+    '<p class="map-note">The pin marks the Ezeiweka Road area in Awada. '
+    'Use the address above for the exact premises.</p>'
+)
+
+FIND_US = f"""
+      <h3 class="h4 mb-3">Find Us</h3>
+      <div class="map-frame">
+        <iframe title="Map showing the Machinery Warehouse Outlet location" src="{MAP_EMBED_URL}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+      </div>
+      <p class="coords">GPS coordinates: <span class="mono">{LAT}, {LNG}</span></p>
+      <div class="map-actions">
+        <a class="btn btn-primary" href="{GOOGLE_DIRECTIONS_URL}" target="_blank" rel="noopener">Get directions</a>
+        <a class="btn btn-outline" href="{GOOGLE_PLACE_URL}" target="_blank" rel="noopener">Google Maps</a>
+        <a class="btn btn-outline" href="{APPLE_MAPS_URL}" target="_blank" rel="noopener">Apple Maps</a>
+        <a class="btn btn-outline" href="{WAZE_URL}" target="_blank" rel="noopener">Waze</a>
+      </div>
+      <div class="distance-tool">
+        <button type="button" class="btn btn-dark btn-sm" id="distance-btn">Show my distance from the office</button>
+        <p class="text-steel distance-result" id="distance-result" role="status" aria-live="polite"></p>
+        <p class="map-note">Your location is used only on your device to work out the distance. It is never sent anywhere.</p>
+      </div>
+      {MAP_NOTE}
+"""
+
+ABOUT_DIRECTIONS = f"""
+        <a class="btn btn-outline btn-sm mt-3" href="{GOOGLE_DIRECTIONS_URL}" target="_blank" rel="noopener">Get directions</a>"""
 
 # ---------------------------------------------------------------- HOME -----
 CAT_IMAGE = {
@@ -365,6 +395,7 @@ about_body = """
         <span class="cat-label">Head Office</span>
         <h3 class="h4 mt-2">Awada, Anambra State</h3>
         <p class="text-steel mt-2">Awada Industrial Zone, 2 Ichi Street, Off Ezeiweka Road, Awada-Obosi, Anambra State.</p>
+        __ABOUT_DIRECTIONS__
       </div>
     </div>
   </div>
@@ -373,7 +404,7 @@ about_body = """
 write("about.html", page(
     "About Us",
     "Machinery Warehouse Outlet is home of industrial machines and spare parts in Awada, Anambra State.",
-    about_body,
+    about_body.replace("__ABOUT_DIRECTIONS__", ABOUT_DIRECTIONS),
 ))
 
 # ---------------------------------------------------------------- QUOTE ----
@@ -544,10 +575,7 @@ contact_body = """
       </form>
     </div>
     <div>
-      <h3 class="h4 mb-3">Find Us</h3>
-      <div style="border:1px solid var(--line);aspect-ratio:4/3">
-        <iframe title="Map to Machinery Warehouse Outlet" src="https://www.google.com/maps?q=Awada+Industrial+Zone,+2+Ichi+Street,+Off+Ezeiweka+Road,+Awada-Obosi,+Anambra+State,+Nigeria&output=embed" style="width:100%;height:100%;border:0;filter:grayscale(0.4) contrast(1.05)" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
-      </div>
+__FIND_US__
     </div>
   </div>
 </section>
@@ -555,7 +583,7 @@ contact_body = """
 write("contact.html", page(
     "Contact Us",
     "Contact Machinery Warehouse Outlet by phone, WhatsApp or email, or visit our head office in Awada, Anambra State.",
-    contact_body,
+    contact_body.replace("__FIND_US__", FIND_US),
 ))
 
 # ---------------------------------------------------------------- 404 ------

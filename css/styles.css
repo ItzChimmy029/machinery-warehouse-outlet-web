@@ -616,6 +616,21 @@ body.has-actionbar { padding-bottom: 64px; }
   50% { transform: scale(1.05); }
 }
 
+/* --- Map and directions (contact page) --- */
+.map-frame {
+  border: 1px solid var(--line);
+  aspect-ratio: 4 / 3;
+  background: var(--plate-dim);
+}
+.map-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
+.coords { margin-top: var(--sp-2); font-size: 0.9rem; color: var(--steel); overflow-wrap: anywhere; }
+.coords .mono { color: var(--ink); font-weight: 500; }
+.map-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-3); }
+.map-actions .btn { white-space: normal; text-align: center; flex: 1 1 auto; }
+.distance-tool { margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--line); }
+.distance-result { margin-top: var(--sp-2); font-weight: 500; min-height: 1.5em; }
+.map-note { margin-top: var(--sp-2); font-size: 0.82rem; color: var(--steel); }
+
 /* --- WhatsApp message preview (quote form) --- */
 .wa-preview {
   border: 1.5px solid var(--line);

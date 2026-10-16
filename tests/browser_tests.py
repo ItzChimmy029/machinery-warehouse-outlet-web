@@ -434,6 +434,65 @@ with sync_playwright() as pw:
     check("mobile menu has no catalogue link", not any("catal" + "ogue" in m.lower() for m in mlabels), str(mlabels))
     ctx.close()
 
+    print("\n== 12. Email removal ==")
+    ctx, pg = new_page()
+    bad = []
+    for u in PAGES + ["product.html?slug=hydraulic-punching-machine"]:
+        pg.goto(f"{BASE}/{u}"); pg.wait_for_timeout(200)
+        mails = set(pg.eval_on_selector_all("a[href^='mailto:']", "els => els.map(e => e.getAttribute('href'))"))
+        if mails != {"mailto:machines.warehouse@gmail.com"}: bad.append(f"{u}: {sorted(mails)}")
+        if "juni" + "net" in pg.content().lower() + pg.inner_text("body").lower(): bad.append(f"{u}: removed email text present")
+    check("every page shows only machines.warehouse@gmail.com (mailto link and text)", not bad, "; ".join(bad[:3]))
+    check("removed email does not appear in the site data", pg.evaluate("COMPANY.emails.length") == 1 and "juni" + "net" not in pg.evaluate("JSON.stringify(COMPANY)"))
+    ctx.close()
+
+    print("\n== 13. Location, map and live GPS ==")
+    import math
+    def haversine(a, b, c, d):
+        r = math.radians; x = math.sin(r(c - a) / 2) ** 2 + math.cos(r(a)) * math.cos(r(c)) * math.sin(r(d - b) / 2) ** 2
+        return 6371.0088 * 2 * math.asin(math.sqrt(x))
+    ctx, pg = new_page()
+    pg.goto(f"{BASE}/contact.html"); pg.wait_for_timeout(300)
+    loc = pg.evaluate("COMPANY.location")
+    pair = f"{loc['lat']},{loc['lng']}"
+    iframe_src = pg.get_attribute(".map-frame iframe", "src") or ""
+    u = urlparse(iframe_src); q = parse_qs(u.query)
+    check("map is embedded from Google at the configured coordinates", u.netloc == "www.google.com" and q.get("q") == [pair] and q.get("output") == ["embed"], iframe_src)
+    check("map iframe has an accessible title", len(pg.get_attribute(".map-frame iframe", "title") or "") > 10)
+    links = {t: pg.get_attribute(f"a:text-is('{t}')", "href") for t in ("Get directions", "Google Maps", "Apple Maps", "Waze")}
+    check("Google, Apple Maps and Waze links all point at the same coordinates", all(pair in (h or "") for h in links.values()), str(links))
+    check("direction links open safely in a new tab", pg.evaluate("[...document.querySelectorAll('.map-actions a')].every(a => a.target === '_blank' && a.rel.includes('noopener'))"))
+    check("GPS coordinates are shown as text for any other GPS device", f"{loc['lat']}, {loc['lng']}" in pg.inner_text(".coords"))
+    notes = pg.eval_on_selector_all(".map-note", "els => els.map(e => e.textContent)")
+    check("while unverified, the page says the pin marks the road area (no false precision)", any("Ezeiweka Road area" in n for n in notes), str(notes))
+    check("address text on the contact page is the exact business address", "2 Ichi Street, Off Ezeiweka Road, Awada-Obosi, Anambra State" in pg.inner_text("body"))
+    ctx.close()
+    for u_ in ("index.html", "about.html"):
+        ctx, pg = new_page(); pg.goto(f"{BASE}/{u_}"); pg.wait_for_timeout(250)
+        hrefs = pg.eval_on_selector_all("a[href*='google.com/maps']", "els => els.map(e => e.href)")
+        check(f"{u_}: address / directions link goes to the configured coordinates", hrefs and all(pair in h for h in hrefs), str(hrefs))
+        ctx.close()
+    # live GPS: simulated positions
+    for label, (la, lo) in {"about 9 km away": (6.2000, 6.8700), "at the office": (float(loc['lat']), float(loc['lng'])), "far away (Lagos area)": (6.5244, 3.3792)}.items():
+        ctx = browser.new_context(viewport={"width": 1280, "height": 900}, geolocation={"latitude": la, "longitude": lo}, permissions=["geolocation"])
+        pg = ctx.new_page(); sent = []
+        pg.on("request", lambda r: sent.append(r.url))
+        pg.goto(f"{BASE}/contact.html"); pg.wait_for_timeout(300)
+        pg.click("#distance-btn"); wait_until(pg, "document.querySelector('#distance-result').textContent.includes('about')", 5000)
+        txt = pg.inner_text("#distance-result"); exp = haversine(la, lo, float(loc['lat']), float(loc['lng']))
+        mm = re.search(r"about ([\d.]+) (km|m) ", txt)
+        got = (float(mm.group(1)) / (1000 if mm.group(2) == "m" else 1)) if mm else None
+        check(f"distance tool ({label}) matches the great-circle distance", got is not None and abs(got - exp) <= max(0.06, exp * 0.01), f"shown '{txt}' expected {exp:.2f} km")
+        others = [u_ for u_ in sent if "google.com/maps" not in u_]  # the map embed legitimately contains the office pin
+        check(f"distance tool ({label}) never sends the position anywhere", not any(str(la)[:6] in u_ and str(lo)[:6] in u_ for u_ in others), str(others[:3]))
+        check(f"distance tool ({label}) re-enables its button", not pg.is_disabled("#distance-btn"))
+        ctx.close()
+    ctx, pg = new_page()  # no geolocation permission granted
+    pg.goto(f"{BASE}/contact.html"); pg.wait_for_timeout(250)
+    pg.click("#distance-btn"); wait_until(pg, "document.querySelector('#distance-result').textContent.length > 25 && !document.querySelector('#distance-btn').disabled", 15000)
+    check("denied or unavailable location shows a helpful message and the button recovers", ("permission" in pg.inner_text("#distance-result").lower() or "could not" in pg.inner_text("#distance-result").lower() or "too long" in pg.inner_text("#distance-result").lower()) and not pg.is_disabled("#distance-btn"), pg.inner_text("#distance-result"))
+    ctx.close()
+
     browser.close()
 srv.shutdown()
 print(f"\n{len(failures)} failure(s)")

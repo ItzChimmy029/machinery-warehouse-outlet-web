@@ -17,8 +17,23 @@ const COMPANY = {
   disclaimer:
     "Pictures of our machines may slightly differ from the physical unit, but the quality and specifications are the same.",
   address: "Awada Industrial Zone, 2 Ichi Street, Off Ezeiweka Road, Awada-Obosi, Anambra State",
+  // Map pin used by the embedded map, every "Get directions" button and the
+  // "distance from you" tool. This is the ONLY place coordinates are defined.
+  //
+  // STATUS: verified is false. These coordinates are a real point on Ezeiweka
+  // Road in Awada (from public Google Places data for a nearby business). They
+  // are NOT yet the exact door of No. 2 Ichi Street, because no public map
+  // listing exists for the business. To make the pin exact: stand at the shop,
+  // open Google Maps on your phone, press and hold on the spot, tap the
+  // coordinates shown at the top to copy them, paste them into lat and lng
+  // below, set verified to true, then run: python3 build_pages.py
+  location: {
+    lat: 6.118714,
+    lng: 6.808624,
+    verified: false,
+  },
   phones: ["08033100374", "09095555222"],
-  emails: ["machines.warehouse@juninet.com", "machines.warehouse@gmail.com"],
+  emails: ["machines.warehouse@gmail.com"],
   // International format (no leading +, no leading 0) — used directly to build wa.me links.
   whatsapp: "2349022330011",
   whatsappDisplay: "0902 233 0011",

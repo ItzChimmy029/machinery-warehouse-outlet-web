@@ -32,6 +32,26 @@ After editing any template (`build.py`, `build_pages.py`) or `js/data.js`, rebui
 python3 build_pages.py
 ```
 
+## Map and GPS location
+
+The contact page has an embedded Google map, GPS coordinates as text, and
+direction buttons for Google Maps, Apple Maps and Waze. The About page and the
+footer link to the same spot, and a "Show my distance from the office" button
+uses the visitor's own phone location (only on their device, never sent
+anywhere). All of it comes from one setting, `COMPANY.location` in
+`js/data.js`.
+
+**Status: the pin is approximate until you confirm it.** No public map listing
+exists for the business, so the coordinates currently point to a verified spot
+on Ezeiweka Road in Awada, not the exact door of No. 2 Ichi Street. While
+`verified` is `false` the contact page tells visitors the pin marks the road
+area. To make it exact:
+
+1. Stand at the shop and open Google Maps on your phone.
+2. Press and hold on the exact spot to drop a pin.
+3. Tap the coordinates shown at the top of the screen to copy them.
+4. Paste them into `lat` and `lng` in `js/data.js`, set `verified: true`, then run `python3 build_pages.py` and push.
+
 ## How WhatsApp enquiries work
 
 There is no server. Every enquiry opens WhatsApp with a ready-written message
